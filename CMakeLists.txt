@@ -130,7 +130,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-# ${catkin_INCLUDE_DIRS}
+${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -178,6 +178,7 @@ include_directories(
 # )
 catkin_install_python(PROGRAMS 
 	scripts/tortoisebot_action_server.py
+	test/waypoints_test.py
 	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -203,11 +204,11 @@ catkin_install_python(PROGRAMS
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+install(FILES
+  test/waypoints_test.test
+  test/waypoints_test.py
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
 #############
 ## Testing ##
@@ -221,3 +222,4 @@ catkin_install_python(PROGRAMS
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+catkin_add_nosetests(test/waypoints_test.py)
