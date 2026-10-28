@@ -67,19 +67,29 @@ class WaypointActionClass(object):
 
         # define desired position and errors
         self._des_pos = goal.position
+        # self.wrong_des_pos = Point(goal.position.x - 0.15, goal.position.y + 0.15, goal.position.z - 0.15)
         desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
+        # wrong_desired_yaw = math.atan2(self.wrong_des_pos.y - self._position.y, self.wrong_des_pos.x - self._position.x)
         err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
+        # wrong_err_pos = math.sqrt(pow(self.wrong_des_pos.y - self._position.y, 2) + pow(self.wrong_des_pos.x - self._position.x, 2))
         err_yaw = desired_yaw - self._yaw
+        # wrong_err_yaw = wrong_desired_yaw - self._yaw
 
         # perform task
         while err_pos > self._dist_precision and success:
+        # while wrong_err_pos > self._dist_precision and success:
             # update vars
             desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
+            # wrong_desired_yaw = math.atan2(self.wrong_des_pos.y - self._position.y, self.wrong_des_pos.x - self._position.x)
             err_yaw = desired_yaw - self._yaw
+            # wrong_err_yaw = wrong_desired_yaw - self._yaw
             err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
+            # wrong_err_pos = math.sqrt(pow(self.wrong_des_pos.y - self._position.y, 2) + pow(self.wrong_des_pos.x - self._position.x, 2))
             rospy.loginfo("Current Yaw: %s" % str(self._yaw))
             rospy.loginfo("Desired Yaw: %s" % str(desired_yaw))
+            # rospy.loginfo("Wrong desired Yaw: %s" % str(wrong_desired_yaw))
             rospy.loginfo("Error Yaw: %s" % str(err_yaw))
+            # rospy.loginfo("Wrong error Yaw: %s" % str(wrong_err_yaw))
             # logic goes here
             if self._as.is_preempt_requested():
                 # cancelled
@@ -87,11 +97,13 @@ class WaypointActionClass(object):
                 self._as.set_preempted()
                 success = False
             elif math.fabs(err_yaw) > self._yaw_precision:
+            # elif math.fabs(wrong_err_yaw) > self._yaw_precision:
                 # fix yaw
                 rospy.loginfo("fix yaw")
                 self._state = 'fix yaw'
                 twist_msg = Twist()
                 twist_msg.angular.z = 0.65 if err_yaw > 0 else -0.65
+                # twist_msg.angular.z = 0.65 if wrong_err_yaw > 0 else -0.65
                 self._pub_cmd_vel.publish(twist_msg)
             else:
                 # go to point

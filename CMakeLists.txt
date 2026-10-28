@@ -178,6 +178,7 @@ ${catkin_INCLUDE_DIRS}
 # )
 catkin_install_python(PROGRAMS 
 	scripts/tortoisebot_action_server.py
+	scripts/wrong_tortoisebot_action_server.py
 	test/waypoints_test.py
 	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
