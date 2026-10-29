@@ -67,43 +67,37 @@ class WaypointActionClass(object):
 
         # define desired position and errors
         self._des_pos = goal.position
-        # self.wrong_des_pos = Point(goal.position.x - 0.15, goal.position.y + 0.15, goal.position.z - 0.15)
+        # # To make error:
+        # self._des_pos.x = goal.position.x - 0.1
+        # self._des_pos.y = goal.position.y - 0.1
         desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
-        # wrong_desired_yaw = math.atan2(self.wrong_des_pos.y - self._position.y, self.wrong_des_pos.x - self._position.x)
         err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
-        # wrong_err_pos = math.sqrt(pow(self.wrong_des_pos.y - self._position.y, 2) + pow(self.wrong_des_pos.x - self._position.x, 2))
         err_yaw = desired_yaw - self._yaw
-        # wrong_err_yaw = wrong_desired_yaw - self._yaw
 
         # perform task
+        # while err_pos > self._dist_precision and math.fabs(err_yaw) > self._yaw_precision and success:
         while err_pos > self._dist_precision and success:
-        # while wrong_err_pos > self._dist_precision and success:
             # update vars
             desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
-            # wrong_desired_yaw = math.atan2(self.wrong_des_pos.y - self._position.y, self.wrong_des_pos.x - self._position.x)
             err_yaw = desired_yaw - self._yaw
-            # wrong_err_yaw = wrong_desired_yaw - self._yaw
             err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
-            # wrong_err_pos = math.sqrt(pow(self.wrong_des_pos.y - self._position.y, 2) + pow(self.wrong_des_pos.x - self._position.x, 2))
-            rospy.loginfo("Current Yaw: %s" % str(self._yaw))
-            rospy.loginfo("Desired Yaw: %s" % str(desired_yaw))
-            # rospy.loginfo("Wrong desired Yaw: %s" % str(wrong_desired_yaw))
+            # rospy.loginfo("Current Yaw: %s" % str(self._yaw))
+            # rospy.loginfo("Desired Yaw: %s" % str(desired_yaw))
             rospy.loginfo("Error Yaw: %s" % str(err_yaw))
+            rospy.loginfo("Error Pos: %s" % str(err_pos))
             # rospy.loginfo("Wrong error Yaw: %s" % str(wrong_err_yaw))
             # logic goes here
             if self._as.is_preempt_requested():
-                # cancelled
+                # cancelled 
                 rospy.loginfo("The goal has been cancelled/preempted")
                 self._as.set_preempted()
                 success = False
             elif math.fabs(err_yaw) > self._yaw_precision:
-            # elif math.fabs(wrong_err_yaw) > self._yaw_precision:
                 # fix yaw
                 rospy.loginfo("fix yaw")
                 self._state = 'fix yaw'
                 twist_msg = Twist()
                 twist_msg.angular.z = 0.65 if err_yaw > 0 else -0.65
-                # twist_msg.angular.z = 0.65 if wrong_err_yaw > 0 else -0.65
                 self._pub_cmd_vel.publish(twist_msg)
             else:
                 # go to point
@@ -129,6 +123,25 @@ class WaypointActionClass(object):
         twist_msg.angular.z = 0
         self._pub_cmd_vel.publish(twist_msg)
 
+        # # TROLLING To GIVE ERRORS 
+        # troll_count = 0
+        # while troll_count < 75:
+        #     twist_msg = Twist()
+        #     twist_msg.linear.x = 0.0
+        #     twist_msg.angular.z = 0.2
+        #     self._pub_cmd_vel.publish(twist_msg)
+        #     self._rate.sleep()
+        #     rospy.loginfo("Trolling")
+        #     troll_count+=1
+        
+        # # stop
+        # twist_msg = Twist()
+        # twist_msg.linear.x = 0
+        # twist_msg.angular.z = 0
+        # self._pub_cmd_vel.publish(twist_msg)
+
+        # # END TROLL
+
         # return success
         if success:
             self._result.success = True
@@ -138,3 +151,138 @@ if __name__ == '__main__':
     rospy.init_node('tortoisebot_as')
     WaypointActionClass()
     rospy.spin()
+
+
+
+
+
+# #! /usr/bin/env python
+# import rospy
+# import time
+# import actionlib
+
+# from tortoisebot_msgs.msg import WaypointActionFeedback, WaypointActionResult, WaypointActionAction
+# from geometry_msgs.msg import Twist
+# from std_msgs.msg import Empty
+# from geometry_msgs.msg import Twist, Point
+# from nav_msgs.msg import Odometry
+# from tf import transformations
+# import math
+
+# class WaypointActionClass(object):
+
+#     # create messages that are used to publish feedback/result
+#     _feedback = WaypointActionFeedback()
+#     _result = WaypointActionResult()
+
+#     # topics
+#     _pub_cmd_vel = None
+#     _sub_odom = None
+
+#     # go to point vars
+#     # robot state variables
+#     _position = Point()
+#     _yaw = 0
+#     # machine state
+#     _state = 'idle'
+#     # goal
+#     _des_pos = Point()
+#     # parameters
+#     _yaw_precision = math.pi / 90 # +/- 2 degree allowed
+#     _dist_precision = 0.05
+
+#     def __init__(self):
+#         # creates the action server
+#         self._as = actionlib.SimpleActionServer("tortoisebot_as", WaypointActionAction, self.goal_callback, False)
+#         self._as.start()
+
+#         # define a loop rate
+#         self._rate = rospy.Rate(25)
+
+#         # topics
+#         self._pub_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+#         self._sub_odom = rospy.Subscriber('/odom', Odometry, self._clbk_odom)
+#         rospy.loginfo("Action server started")
+
+#     def _clbk_odom(self, msg):
+#         # position
+#         self._position = msg.pose.pose.position
+
+#         # yaw
+#         quaternion = (
+#             msg.pose.pose.orientation.x,
+#             msg.pose.pose.orientation.y,
+#             msg.pose.pose.orientation.z,
+#             msg.pose.pose.orientation.w)
+#         euler = transformations.euler_from_quaternion(quaternion)
+#         self._yaw = euler[2]
+
+#     def goal_callback(self, goal):
+#         rospy.loginfo("goal %s received" % str(goal))
+
+#         # helper variables
+#         success = True
+
+#         # define desired position and errors
+#         self._des_pos = goal.position
+#         desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
+#         err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
+#         err_yaw = desired_yaw - self._yaw
+
+#         # perform task
+#         while err_pos > self._dist_precision and success:
+#             # update vars
+#             desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
+#             err_yaw = desired_yaw - self._yaw
+#             err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
+#             rospy.loginfo("Current Yaw: %s" % str(self._yaw))
+#             rospy.loginfo("Desired Yaw: %s" % str(desired_yaw))
+#             rospy.loginfo("Error Yaw: %s" % str(err_yaw))
+#             # logic goes here
+#             if self._as.is_preempt_requested():
+#                 # cancelled
+#                 rospy.loginfo("The goal has been cancelled/preempted")
+#                 self._as.set_preempted()
+#                 success = False
+#             elif math.fabs(err_yaw) > self._yaw_precision:
+#                 # fix yaw
+#                 rospy.loginfo("fix yaw")
+#                 self._state = 'fix yaw'
+#                 twist_msg = Twist()
+#                 twist_msg.angular.z = 0.65 if err_yaw > 0 else -0.65
+#                 self._pub_cmd_vel.publish(twist_msg)
+#             else:
+#                 # go to point
+#                 rospy.loginfo("go to point")
+#                 self._state = 'go to point'
+#                 twist_msg = Twist()
+#                 twist_msg.linear.x = 0.6
+#                 twist_msg.angular.z = 0
+#                 # twist_msg.angular.z = 0.1 if err_yaw > 0 else -0.1
+#                 self._pub_cmd_vel.publish(twist_msg)
+
+#             # send feedback
+#             self._feedback.position = self._position
+#             self._feedback.state = self._state
+#             self._as.publish_feedback(self._feedback)
+
+#             # loop rate
+#             self._rate.sleep()
+
+#         # stop
+#         twist_msg = Twist()
+#         twist_msg.linear.x = 0
+#         twist_msg.angular.z = 0
+#         self._pub_cmd_vel.publish(twist_msg)
+
+#         # return success
+#         if success:
+#             self._result.success = True
+#             self._as.set_succeeded(self._result)
+
+# if __name__ == '__main__':
+#     rospy.init_node('tortoisebot_as')
+#     WaypointActionClass()
+#     rospy.spin()
+
+
